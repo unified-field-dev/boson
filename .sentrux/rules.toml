@@ -1,0 +1,18 @@
+# Monorepo quality gates for install-wizard / Gluon milestone work.
+# Run `sentrux health` + `sentrux check_rules` before merging large control-plane PRs.
+# See `PRIORITIZATION.md` and `GLUON_WORKLOAD_AUDIT_SUMMARY.md`.
+
+[project]
+name = "web-app-template"
+profile = "monorepo-pragmatic"
+
+[thresholds]
+max_cycles = 0
+max_new_f_dimensions = 0
+# Coupling across crates is expected; tighten when refactoring stabilizes.
+max_coupling_score = 8.0
+max_cross_module_edges = 80
+min_test_coverage_line = 0.0
+
+[revisit]
+trigger = "Tighten sentrux thresholds when install driver + cell readiness modules stabilize."
