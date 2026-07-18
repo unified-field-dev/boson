@@ -5,8 +5,10 @@ Main crate — re-exports core types, runtime, optional backends, and the `#[tas
 The crates.io package is **`uf-boson`** (`boson` is already taken). With `[lib] name = "boson"`,
 imports stay `use boson::…`.
 
-**Source of truth:** `cargo doc -p uf-boson --features mem,axum --open` — see the documentation map
-on the crate root for task-oriented entry points. Published docs: https://docs.rs/uf-boson
+**Source of truth:** `cargo doc -p uf-boson --features mem,axum --open` — guided get-started with
+[Mode 1 (embedded)](https://docs.rs/uf-boson/latest/boson/index.html#mode-1--embedded-one-binary) and
+[Mode 2 (remote worker)](https://docs.rs/uf-boson/latest/boson/index.html#mode-2--remote-worker-two-binaries).
+Published docs: https://docs.rs/uf-boson
 
 ## Role
 
@@ -28,7 +30,7 @@ on the crate root for task-oriented entry points. Published docs: https://docs.r
 
 This crate ships with **no default features** (`default = []`).
 
-## Boot a worker
+## Boot a worker (Mode 1)
 
 ```toml
 [dependencies]
@@ -55,7 +57,10 @@ let boson = Boson::builder()
 configure(boson);
 ```
 
-With HTTP admin: `features = ["mem", "axum"]`. Full walkthrough: [`task_macro` example](https://github.com/unified-field-dev/boson/blob/main/boson/examples/task_macro.rs).
+With HTTP admin: `features = ["mem", "axum"]`. Full walkthrough: crate rustdoc Getting started and
+[`task_macro`](https://github.com/unified-field-dev/boson/blob/main/boson/examples/task_macro.rs).
+
+Mode 2 (enqueue host + worker): `remote_enqueue` / `remote_worker` examples (`--features sqlite`).
 
 ## Define handlers and enqueue
 

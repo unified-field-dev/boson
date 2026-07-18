@@ -38,7 +38,8 @@ async fn main() -> anyhow::Result<()> {
 ```
 
 Add tasks with `#[task]` and enqueue via `send_with`. See the hero example below and
-`cargo doc -p uf-boson --features mem --open` for the full documentation map.
+`cargo doc -p uf-boson --features mem,axum --open` for the guided get-started (embedded vs
+remote worker topology).
 
 ## What Boson owns
 

@@ -9,7 +9,8 @@ Provides `#[boson::task]` for defining tasks with typed enqueue APIs.
 1. Annotate an async function with `#[boson::task(name = "...")]`.
 2. First parameter must be `Box<dyn ExecutionContext>`.
 3. Add crate dependencies (below).
-4. Enqueue with `<TaskName>::send_with(actor_json, params)` once the worker is running.
+4. Enqueue with `<TaskName>::send_with(actor_json, params)` once the process has called
+   `configure` (Mode 1 embedded **or** Mode 2 enqueue host).
 
 Optional policy attributes: `priority`, `pool`, `idempotency_mode`, `max_attempts`, `base_delay_ms`,
 `backoff_multiplier`, `max_delay_ms`, `max_in_flight`, `max_enqueue_per_second` — see rustdoc on
@@ -18,13 +19,14 @@ Optional policy attributes: `priority`, `pool`, `idempotency_mode`, `max_attempt
 ## Project setup (once per handler crate)
 
 - Add dependencies (below).
-- If handlers live in a library crate, link that crate into the worker binary
+- If handlers live in a library crate, link that crate into the **worker** binary
   (for example `use my_worker as _;`).
 
-## Integrating the server
+## Boot once (not per task)
 
-Worker boot — `BosonBuilder`, `.auto_registry()`, identity factory, and `configure` before
-`send_with` — is documented on the [`boson`](https://docs.rs/uf-boson) crate and in
+Worker / enqueue-host boot — `BosonBuilder`, `.auto_registry()`, identity factory, and `configure`
+before `send_with` — is documented on the [`boson`](https://docs.rs/uf-boson) crate
+[Getting started](https://docs.rs/uf-boson/latest/boson/index.html#getting-started) and in
 [`boson-runtime`](https://docs.rs/boson-runtime). You do not repeat boot steps for each new task.
 
 Runnable first-boot example: [`task_macro`](https://github.com/unified-field-dev/boson/blob/main/boson/examples/task_macro.rs).

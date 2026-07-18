@@ -255,6 +255,7 @@ name = "boson-axum"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "boson-backend-mem",
  "boson-core",
  "boson-runtime",
  "chrono",

@@ -1,6 +1,11 @@
 //! [`QueueBackend`] — queue persistence trait for custom storage adapters.
 //!
-//! See **How to implement** on [`QueueBackend`] for a step-by-step guide and reference adapters.
+//! **App authors:** pick a shipped backend by topology (mem = Mode 1 only; SQLite/Postgres/Redis/NATS
+//! for shared queues) using the [`boson`](https://docs.rs/uf-boson) crate
+//! [backend table](https://docs.rs/uf-boson/latest/boson/index.html#mode-1--embedded-one-binary).
+//!
+//! **Adapter authors:** see **How to implement** on [`QueueBackend`] for a step-by-step guide and
+//! reference adapters.
 
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -90,7 +95,7 @@ pub enum JobEnqueueDisposition {
 ///     // ... implement all remaining QueueBackend methods
 /// }
 ///
-/// // Integrator wiring (Integrating the server):
+/// // Integrator wiring (see boson crate Getting started — Mode 1 / Mode 2):
 /// let boson = Boson::builder()
 ///     .queue_backend(Arc::new(MyQueueBackend { /* ... */ }))
 ///     .execution_context_factory(boson_core::JsonExecutionContextFactory)
