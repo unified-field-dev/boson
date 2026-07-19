@@ -3,3 +3,6 @@
 /profiling/boson-bench/smoke/
 /profiling/boson-bench/reports/*
 !/profiling/boson-bench/reports/.gitkeep
+
+# Local Sentrux quality-gate config (dev artifact; not part of upstream)
+.sentrux/
