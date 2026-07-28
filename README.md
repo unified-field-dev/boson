@@ -2,7 +2,7 @@
 [![crates.io](https://img.shields.io/crates/v/uf-boson.svg)](https://crates.io/crates/uf-boson)
 [![docs.rs](https://docs.rs/uf-boson/badge.svg)](https://docs.rs/uf-boson)
 [![Downloads](https://img.shields.io/crates/d/uf-boson.svg)](https://crates.io/crates/uf-boson)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 [GitHub](https://github.com/unified-field-dev/boson) · [crates.io](https://crates.io/crates/uf-boson) · [docs.rs](https://docs.rs/uf-boson) · `cargo doc -p uf-boson --features mem,axum --open` · [Benchmarks](boson-bench/README.md)
 
