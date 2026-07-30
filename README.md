@@ -140,7 +140,7 @@ API details: [`boson/README.md`](boson/README.md) and `cargo doc -p uf-boson --f
 **Good fit**
 
 - Background jobs with retries, rate limits, and lease-based workers
-- Systems that need a `QueueBackend` implementation, not a full workflow engine
+- Systems that need a pluggable `QueueBackend` for short-lived jobs
 - Admin HTTP for enqueue, job inspection, and task config
 
 **Not a fit**
@@ -148,6 +148,7 @@ API details: [`boson/README.md`](boson/README.md) and `cargo doc -p uf-boson --f
 - Cron scheduling or delayed-job DSLs (wrap Boson in your scheduler)
 - Cross-service pub/sub or event streaming (use a transport log + fanout layer)
 - Full message broker semantics (Boson is job-oriented, not topic-oriented)
+- Long-running BPM / multi-step workflow engines
 
 ## Workspace
 
