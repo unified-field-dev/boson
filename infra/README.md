@@ -1,9 +1,5 @@
 # Infra
 
-Local broker/postgres helpers remain under this tree when present.
+Local broker/postgres helpers live under this tree when present.
 
-**AWS / native-aws campaigns** live in the private sibling checkout:
-
-`~/unified-field/uf-live-cloud-lab/boson/infra/native-aws`
-
-Set `UF_LAB_ROOT` and see that repo’s README.
+Maintainers also run AWS bench and remote CI campaigns out of tree. Those scripts are not shipped in this repository.

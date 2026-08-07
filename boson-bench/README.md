@@ -27,7 +27,7 @@ cargo run -p boson-bench -- run --experiment bm-be4 --backend redis \
 
 Reports: [`profiling/boson-bench/reports/`](../profiling/boson-bench/reports/)
 
-AWS campaigns: `$UF_LAB_ROOT/boson/infra/native-aws/broker-fleet/` (see [`PERFORMANCE.md`](PERFORMANCE.md)).
+AWS campaigns are run out of tree by maintainers (see [`PERFORMANCE.md`](PERFORMANCE.md)).
 
 CI smoke: [`.github/workflows/boson-matrix.yml`](../.github/workflows/boson-matrix.yml).
 

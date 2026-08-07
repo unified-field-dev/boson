@@ -182,11 +182,7 @@ See [`boson-core/README.md`](boson-core/README.md) for trait details.
 
 Full baseline: [`docs/VERIFICATION.md`](docs/VERIFICATION.md). Contribute checklist: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-**Remote CI (optional):** mirror the PR subset on a provisioned native-aws bench host:
-
-```bash
-$UF_LAB_ROOT/boson/scripts/run-remote-ci.sh  # or ~/unified-field/uf-live-cloud-lab/boson/scripts/run-remote-ci.sh
-```
+**Remote CI (optional):** maintainers also mirror the PR subset on AWS when local broker containers are awkward.
 
 **Merge gate:** [`.github/workflows/boson-matrix.yml`](.github/workflows/boson-matrix.yml) runs check, `cargo-deny`, clippy, crate tests, full broker e2e (postgres/redis/nats), axum, examples, docs, coverage, and bench smoke on every push/PR to `main`.
 
