@@ -185,7 +185,7 @@ Full baseline: [`docs/VERIFICATION.md`](docs/VERIFICATION.md). Contribute checkl
 **Remote CI (optional):** mirror the PR subset on a provisioned native-aws bench host:
 
 ```bash
-~/aws/boson/run-remote-ci.sh
+$UF_LAB_ROOT/boson/scripts/run-remote-ci.sh  # or ~/unified-field/uf-live-cloud-lab/boson/scripts/run-remote-ci.sh
 ```
 
 **Merge gate:** [`.github/workflows/boson-matrix.yml`](.github/workflows/boson-matrix.yml) runs check, `cargo-deny`, clippy, crate tests, full broker e2e (postgres/redis/nats), axum, examples, docs, coverage, and bench smoke on every push/PR to `main`.
@@ -204,7 +204,7 @@ Full baseline: [`docs/VERIFICATION.md`](docs/VERIFICATION.md). Contribute checkl
 | [`boson-core/README.md`](boson-core/README.md) | `QueueBackend` trait and DTOs |
 | [`boson-runtime/README.md`](boson-runtime/README.md) | Builder, worker loop, task registry |
 | [`boson-bench/README.md`](boson-bench/README.md) | Benchmark CLI |
-| [`boson-bench/EXPERIMENTS.md`](boson-bench/EXPERIMENTS.md) | Experiment registry and campaigns |
+| [`boson-bench/PERFORMANCE.md`](boson-bench/PERFORMANCE.md) | Experiment registry and campaigns |
 | [`boson-bench/PERFORMANCE_STUDY.md`](boson-bench/PERFORMANCE_STUDY.md) | Performance study and scale analysis |
 | [`boson-backend-redis/README.md`](boson-backend-redis/README.md) | Redis fleet backend |
 | [`boson-backend-nats/README.md`](boson-backend-nats/README.md) | NATS JetStream fleet backend |

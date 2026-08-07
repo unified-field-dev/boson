@@ -47,20 +47,20 @@ Compare to Photon BM-PFH (`~/photon/infra/broker/scripts/run-pfh-sweep.sh`) for 
 ## AWS Phase 2 campaign (Photon-aligned hardware)
 
 ```bash
-bash infra/native-aws/scripts/run-tier3-c6i-aws.sh nats
+bash "$UF_LAB_ROOT/boson/infra/native-aws/scripts/run-tier3-c6i-aws.sh" nats
 ```
 
 ## Phase A: c6i.large broker sizing
 
 ```bash
-bash infra/native-aws/scripts/run-tier3-c6i-broker-aws.sh
+bash "$UF_LAB_ROOT/boson/infra/native-aws/scripts/run-tier3-c6i-broker-aws.sh"
 ```
 
 ## RAFT cluster comparison (optional, Phase C)
 
 ```bash
-bash infra/native-aws/broker-fleet/run-be4-cluster-ref-aws.sh   # K=4 sharded cluster, single bench
-bash infra/native-aws/broker-fleet/run-cluster-n2-aws.sh        # publisher sweep on n=2 cluster
+bash "$UF_LAB_ROOT/boson/infra/native-aws/broker-fleet/run-be4-cluster-ref-aws.sh"   # K=4 sharded cluster, single bench
+bash "$UF_LAB_ROOT/boson/infra/native-aws/broker-fleet/run-cluster-n2-aws.sh"        # publisher sweep on n=2 cluster
 ```
 
 Uses single NATS client to sharded JetStream cluster (rep=1 per stream). Different from standalone pool-routed fleet.
@@ -68,14 +68,14 @@ Uses single NATS client to sharded JetStream cluster (rep=1 per stream). Differe
 ## Multi-embed fleet sweep (Photon Phase 4 analog)
 
 ```bash
-bash infra/native-aws/broker-fleet/run-be4-multibench-sweep-aws.sh
+bash "$UF_LAB_ROOT/boson/infra/native-aws/broker-fleet/run-be4-multibench-sweep-aws.sh"
 cargo run -p boson-bench -- be4-multibench-curve --hardware aws-c6i-large --backend nats
 ```
 
 ## Broker fleet sweep (standalone NATS per pool, N=1/2/4)
 
 ```bash
-bash infra/native-aws/broker-fleet/run-fleet-sweep-aws.sh
+bash "$UF_LAB_ROOT/boson/infra/native-aws/broker-fleet/run-fleet-sweep-aws.sh"
 ```
 
 N=4 requires **≥10 vCPU** free (1× c6i.large + 4× t3.medium). Account default limit is 16 vCPU — terminate other campaigns first.
@@ -143,8 +143,8 @@ cargo run -p boson-bench -- bd2-multibench-curve --hardware aws-c6i-large --back
 ## AWS Phase D dequeue campaign
 
 ```bash
-bash infra/native-aws/broker-fleet/run-bd2-campaign-aws.sh   # D0→D3 NATS
-bash infra/native-aws/broker-fleet/run-bd2-redis-replay-aws.sh  # Redis D0–D1
+bash "$UF_LAB_ROOT/boson/infra/native-aws/broker-fleet/run-bd2-campaign-aws.sh"   # D0→D3 NATS
+bash "$UF_LAB_ROOT/boson/infra/native-aws/broker-fleet/run-bd2-redis-replay-aws.sh"  # Redis D0–D1
 ```
 
 Individual phases: `run-bd2-worker-sweep-aws.sh`, `run-bd2-shard-sweep-aws.sh`, `run-bd2-fleet-sweep-aws.sh`, `run-bd2-multibench-sweep-aws.sh`.

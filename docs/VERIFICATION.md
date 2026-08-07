@@ -136,7 +136,7 @@ Baseline ~40% line coverage (2026-07-08), workspace excluding e2e/bench with `--
 Keep harness code, experiment IDs, and methodology docs in Git. Publish heavy JSON reports,
 flamegraphs, and machine-specific captures as CI artifacts or release assets. Retain only small
 golden fixtures when needed for assertions. Report directory:
-`profiling/boson-bench/reports/` (see [`boson-bench/EXPERIMENTS.md`](../boson-bench/EXPERIMENTS.md)).
+`profiling/boson-bench/reports/` (see [`boson-bench/PERFORMANCE.md`](../boson-bench/PERFORMANCE.md)).
 
 ## Backend contract suites
 
