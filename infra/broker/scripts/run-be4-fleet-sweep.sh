@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
-# Local smoke only — decision-grade AWS JSON lives in uf-live-cloud-lab/boson/reports/bench/.
+# Local smoke only — decision-grade AWS reports aren't kept in this repo.
 REPORTS="${BOSON_BENCH_REPORTS:-${REPO}/profiling/boson-bench/smoke}"
 mkdir -p "$REPORTS"
 

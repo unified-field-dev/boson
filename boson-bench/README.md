@@ -37,7 +37,7 @@ BOSON_BENCH_BC1_DURATION_SECS=2 BOSON_BENCH_WORKER_COUNT=2 cargo run -p boson-be
 ```
 
 Runs write JSON reports to `profiling/boson-bench/reports/`, which is gitignored local scratch.
-Decision-grade AWS JSON is kept in the lab repo (uf-live-cloud-lab) under `boson/reports/bench/`.
+Decision-grade AWS results aren't committed to this repo.
 
 AWS campaigns are run out of tree by maintainers (see [`PERFORMANCE.md`](PERFORMANCE.md)).
 

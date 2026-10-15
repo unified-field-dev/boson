@@ -9,7 +9,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPO="$(cd "$ROOT/.." && pwd)"
-# Local smoke only — decision-grade AWS JSON lives in uf-live-cloud-lab/boson/reports/bench/.
+# Local smoke only — decision-grade AWS reports aren't kept in this repo.
 REPORTS="${BOSON_BENCH_REPORTS:-${REPO}/profiling/boson-bench/smoke}"
 NATS_BENCH="${REPO}/profiling/nats-bench"
 mkdir -p "$REPORTS" "$NATS_BENCH"

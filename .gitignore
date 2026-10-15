@@ -1,7 +1,7 @@
 /target
 /target-*/
 /profiling/boson-bench/smoke/
-# Bench reports live in uf-live-cloud-lab/boson/reports/bench/
+# Local bench output; decision-grade results aren't kept in this repo
 /profiling/boson-bench/reports/*
 !/profiling/boson-bench/reports/.gitkeep
 

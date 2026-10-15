@@ -129,9 +129,8 @@ Baseline ~40% line coverage (2026-07-08), workspace excluding e2e/bench with `--
 Keep harness code, experiment IDs, and methodology docs in Git. Publish flamegraphs and
 machine-specific captures as CI artifacts or release assets. Retain only small golden fixtures
 when needed for assertions. Bench runs write JSON reports to `profiling/boson-bench/reports/`,
-which is gitignored local scratch. Decision-grade AWS JSON is kept in the lab repo
-(uf-live-cloud-lab) under `boson/reports/bench/` (see
-[`boson-bench/PERFORMANCE.md`](../boson-bench/PERFORMANCE.md)).
+which is gitignored local scratch. Decision-grade AWS results aren't committed to this repo
+(see [`boson-bench/PERFORMANCE.md`](../boson-bench/PERFORMANCE.md)).
 
 ## Backend contract suites
 
