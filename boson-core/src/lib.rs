@@ -25,7 +25,10 @@ pub use actor_policy::{
     default_http_enqueue_actor, is_system_shaped_actor, ActorJsonPolicy, EnqueueTrust,
     RejectExternalSystemActor,
 };
-pub use backend::{default_backend_from_global, JobEnqueueDisposition, QueueBackend};
+pub use backend::{
+    default_backend_from_global, page_jobs_after, page_runs_after, JobEnqueueDisposition, JobKey,
+    QueueBackend, RunKey,
+};
 pub use error::{BosonError, IdentityError, Result};
 pub use identity::{ExecutionContext, ExecutionContextFactory, JsonExecutionContextFactory};
 pub use models::{

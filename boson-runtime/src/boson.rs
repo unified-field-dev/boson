@@ -3,8 +3,9 @@
 use std::sync::Arc;
 
 use boson_core::{
-    ActorJsonPolicy, BosonError, EnqueueTrust, IdempotencyMode, Job, JobEnqueueDisposition,
-    JobStatus, QueueBackend, RejectExternalSystemActor, Result, Run, TaskConfig, TaskRunStats,
+    ActorJsonPolicy, BosonError, EnqueueTrust, IdempotencyMode, Job, JobEnqueueDisposition, JobKey,
+    JobStatus, QueueBackend, RejectExternalSystemActor, Result, Run, RunKey, TaskConfig,
+    TaskRunStats,
 };
 use chrono::{DateTime, Utc};
 
@@ -234,6 +235,26 @@ impl Boson {
         self.backend.list_jobs(status_filter, offset, limit).await
     }
 
+    /// List up to `limit` jobs after `after`, oldest first (`created_at ASC, job_id ASC`).
+    ///
+    /// Pass `None` for the first page and `JobKey::from(last)` for the last job of each page
+    /// after that; an empty page ends the scan. See [`QueueBackend::list_jobs_after`] for the
+    /// tie-break and what happens to jobs enqueued mid-scan.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the backend fails.
+    pub async fn list_jobs_after(
+        &self,
+        status_filter: Option<JobStatus>,
+        after: Option<&JobKey>,
+        limit: usize,
+    ) -> Result<Vec<Job>> {
+        self.backend
+            .list_jobs_after(status_filter, after, limit)
+            .await
+    }
+
     /// Cancel a job if still active.
     ///
     /// # Errors
@@ -273,6 +294,26 @@ impl Boson {
         limit: usize,
     ) -> Result<Vec<Run>> {
         self.backend.list_runs(job_id_filter, offset, limit).await
+    }
+
+    /// List up to `limit` runs after `after`, newest first (`started_at DESC, run_id DESC`).
+    ///
+    /// Pass `None` for the first page and `RunKey::from(last)` for the last run of each page
+    /// after that; an empty page ends the scan. See [`QueueBackend::list_runs_after`] for the
+    /// tie-break and what happens to runs that start mid-scan.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the backend fails.
+    pub async fn list_runs_after(
+        &self,
+        job_id_filter: Option<&str>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        self.backend
+            .list_runs_after(job_id_filter, after, limit)
+            .await
     }
 
     /// Get run by id.

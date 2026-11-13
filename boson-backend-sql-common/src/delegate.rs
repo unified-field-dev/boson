@@ -34,6 +34,17 @@ macro_rules! delegate_queue_backend {
                 self.$inner.list_jobs(status_filter, offset, limit).await
             }
 
+            async fn list_jobs_after(
+                &self,
+                status_filter: Option<::boson_core::JobStatus>,
+                after: Option<&::boson_core::JobKey>,
+                limit: usize,
+            ) -> ::boson_core::Result<Vec<::boson_core::Job>> {
+                self.$inner
+                    .list_jobs_after(status_filter, after, limit)
+                    .await
+            }
+
             async fn cancel_job_if_active(&self, job_id: &str) -> ::boson_core::Result<()> {
                 self.$inner.cancel_job_if_active(job_id).await
             }
@@ -108,6 +119,17 @@ macro_rules! delegate_queue_backend {
                 limit: usize,
             ) -> ::boson_core::Result<Vec<::boson_core::Run>> {
                 self.$inner.list_runs(job_id_filter, offset, limit).await
+            }
+
+            async fn list_runs_after(
+                &self,
+                job_id_filter: Option<&str>,
+                after: Option<&::boson_core::RunKey>,
+                limit: usize,
+            ) -> ::boson_core::Result<Vec<::boson_core::Run>> {
+                self.$inner
+                    .list_runs_after(job_id_filter, after, limit)
+                    .await
             }
 
             async fn finish_run(

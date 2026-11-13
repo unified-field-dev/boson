@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use boson_core::{
-    Job, JobEnqueueDisposition, JobStatus, QueueBackend, Result, Run, RunStatus, TaskConfig,
-    TaskRunStats,
+    Job, JobEnqueueDisposition, JobKey, JobStatus, QueueBackend, Result, Run, RunKey, RunStatus,
+    TaskConfig, TaskRunStats,
 };
 use chrono::{DateTime, Utc};
 
@@ -33,6 +33,15 @@ impl QueueBackend for SqlQueueBackend {
         limit: usize,
     ) -> Result<Vec<Job>> {
         self.list_jobs_impl(status_filter, offset, limit).await
+    }
+
+    async fn list_jobs_after(
+        &self,
+        status_filter: Option<JobStatus>,
+        after: Option<&JobKey>,
+        limit: usize,
+    ) -> Result<Vec<Job>> {
+        self.list_jobs_after_impl(status_filter, after, limit).await
     }
 
     async fn cancel_job_if_active(&self, job_id: &str) -> Result<()> {
@@ -86,6 +95,15 @@ impl QueueBackend for SqlQueueBackend {
         limit: usize,
     ) -> Result<Vec<Run>> {
         self.list_runs_impl(job_id_filter, offset, limit).await
+    }
+
+    async fn list_runs_after(
+        &self,
+        job_id_filter: Option<&str>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        self.list_runs_after_impl(job_id_filter, after, limit).await
     }
 
     async fn finish_run(

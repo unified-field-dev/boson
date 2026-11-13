@@ -13,6 +13,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 
+use super::keyset::{page_jobs_after, page_runs_after, JobKey, RunKey};
 use crate::error::Result;
 use crate::models::{Job, JobStatus, Run, RunStatus, TaskConfig, TaskRunStats};
 
@@ -136,6 +137,43 @@ pub trait QueueBackend: Send + Sync + Debug {
         limit: usize,
     ) -> Result<Vec<Job>>;
 
+    /// List up to `limit` jobs that sort strictly after `after`, oldest first.
+    ///
+    /// Order is `created_at ASC, job_id ASC`. A job comes after the key when its `created_at`
+    /// is later than `after.created_at`, or equal with a greater `job_id`, so two jobs created in
+    /// the same instant still page in a fixed order. `after: None` starts at the oldest job.
+    /// `status_filter` narrows the scan to one status.
+    ///
+    /// To page, pass `JobKey::from(last)` for the last job of each non-empty page; an empty page
+    /// means the scan is done. Each job appears once across the pages, with no `OFFSET` drift
+    /// when jobs are enqueued mid-scan: [`Job::new`] stamps `created_at` with the current time,
+    /// so a new job sorts after every key already returned and shows up at the end of the scan.
+    /// A job whose status changes mid-scan keeps its position; with a `status_filter`, it shows
+    /// up only if it matches when its page is read.
+    ///
+    /// Engines compare `job_id` with their own text ordering (byte order for in-memory engines
+    /// and `SQLite`, the column collation on Postgres). Paging stays consistent within one engine.
+    ///
+    /// The default body loads every matching job through [`Self::list_jobs`] and pages them with
+    /// [`page_jobs_after`], which is O(n) per page. Engines should override it with an indexed
+    /// query.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same storage errors as [`Self::list_jobs`].
+    async fn list_jobs_after(
+        &self,
+        status_filter: Option<JobStatus>,
+        after: Option<&JobKey>,
+        limit: usize,
+    ) -> Result<Vec<Job>> {
+        if limit == 0 {
+            return Ok(Vec::new());
+        }
+        let all = self.list_jobs(status_filter, 0, usize::MAX).await?;
+        Ok(page_jobs_after(all, status_filter, after, limit))
+    }
+
     /// Cancel a job if it is still active (`queued` or `running`).
     async fn cancel_job_if_active(&self, job_id: &str) -> Result<()>;
 
@@ -192,6 +230,44 @@ pub trait QueueBackend: Send + Sync + Debug {
         offset: usize,
         limit: usize,
     ) -> Result<Vec<Run>>;
+
+    /// List up to `limit` runs that sort strictly after `after`, newest first.
+    ///
+    /// Order is `started_at DESC, run_id DESC`. A run comes after the key when its `started_at`
+    /// is earlier than `after.started_at`, or equal with a smaller `run_id`, so two runs started
+    /// in the same instant still page in a fixed order. `after: None` starts at the newest run.
+    /// `job_id_filter` narrows the scan to one job's runs.
+    ///
+    /// To page, pass `RunKey::from(last)` for the last run of each non-empty page; an empty page
+    /// means the scan is done. Each run appears once across the pages. A run that starts
+    /// mid-scan has a later `started_at` than every key already returned, so it sorts before the
+    /// cursor and the scan does not return it; start a new scan with `after: None` to see it.
+    ///
+    /// Engines compare `run_id` with their own text ordering (byte order for in-memory engines
+    /// and `SQLite`, the column collation on Postgres). Paging stays consistent within one engine.
+    ///
+    /// This order is newest first on every engine, including those whose [`Self::list_runs`]
+    /// returns oldest first.
+    ///
+    /// The default body loads every matching run through [`Self::list_runs`] and pages them with
+    /// [`page_runs_after`], which is O(n) per page. Engines should override it with an indexed
+    /// query.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same storage errors as [`Self::list_runs`].
+    async fn list_runs_after(
+        &self,
+        job_id_filter: Option<&str>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        if limit == 0 {
+            return Ok(Vec::new());
+        }
+        let all = self.list_runs(job_id_filter, 0, usize::MAX).await?;
+        Ok(page_runs_after(all, job_id_filter, after, limit))
+    }
 
     /// Mark a run terminal with outcome fields.
     async fn finish_run(

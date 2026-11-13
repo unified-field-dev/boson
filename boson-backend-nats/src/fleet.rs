@@ -203,6 +203,25 @@ impl QueueBackend for PoolRoutedBackend {
         Ok(jobs.into_iter().skip(offset).take(limit).collect())
     }
 
+    async fn list_jobs_after(
+        &self,
+        status_filter: Option<JobStatus>,
+        after: Option<&boson_core::JobKey>,
+        limit: usize,
+    ) -> Result<Vec<Job>> {
+        // Each shard returns its own first page; the global page is the first `limit` of them.
+        let mut jobs = Vec::new();
+        for backend in &self.backends {
+            jobs.extend(backend.list_jobs_after(status_filter, after, limit).await?);
+        }
+        Ok(boson_core::page_jobs_after(
+            jobs,
+            status_filter,
+            after,
+            limit,
+        ))
+    }
+
     async fn cancel_job_if_active(&self, job_id: &str) -> Result<()> {
         if let Some((backend, _)) = self.find_job_backend(job_id).await? {
             backend.cancel_job_if_active(job_id).await
@@ -305,6 +324,25 @@ impl QueueBackend for PoolRoutedBackend {
         }
         runs.sort_by_key(|r| r.started_at);
         Ok(runs.into_iter().skip(offset).take(limit).collect())
+    }
+
+    async fn list_runs_after(
+        &self,
+        job_id_filter: Option<&str>,
+        after: Option<&boson_core::RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        // Each shard returns its own first page; the global page is the first `limit` of them.
+        let mut runs = Vec::new();
+        for backend in &self.backends {
+            runs.extend(backend.list_runs_after(job_id_filter, after, limit).await?);
+        }
+        Ok(boson_core::page_runs_after(
+            runs,
+            job_id_filter,
+            after,
+            limit,
+        ))
     }
 
     async fn finish_run(

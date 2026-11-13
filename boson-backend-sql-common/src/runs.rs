@@ -1,6 +1,6 @@
 //! Run persistence for the SQL queue backend.
 
-use boson_core::{Result, Run, RunStatus, TaskRunStats};
+use boson_core::{Result, Run, RunKey, RunStatus, TaskRunStats};
 use chrono::{DateTime, Utc};
 use sqlx::Row;
 
@@ -82,6 +82,38 @@ impl SqlQueueBackend {
         }
     }
 
+    pub(crate) async fn list_runs_after_impl(
+        &self,
+        job_id_filter: Option<&str>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        let sql = bind_sql(
+            self.dialect,
+            &runs_after_sql(job_id_filter.is_some(), after.is_some()),
+        );
+        let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+        sql_fetch_all_map!(
+            self,
+            &sql,
+            |q| {
+                let mut q = q;
+                if let Some(job_id) = job_id_filter {
+                    q = q.bind(job_id);
+                }
+                if let Some(key) = after {
+                    q = q
+                        .bind(key.started_at)
+                        .bind(key.started_at)
+                        .bind(key.started_at)
+                        .bind(&key.id);
+                }
+                q.bind(limit)
+            },
+            |r| row_to_run(r)
+        )
+    }
+
     pub(crate) async fn finish_run_impl(
         &self,
         run_id: &str,
@@ -159,5 +191,47 @@ impl SqlQueueBackend {
             runs_total,
             success_count,
         })
+    }
+}
+
+/// `SELECT` for [`SqlQueueBackend::list_runs_after_impl`] with `?` placeholders.
+///
+/// Placeholder order: job id (when filtered), then `started_at` three times and `run_id` (when a
+/// key is given), then the limit. The key predicate is spelled as an expanded `OR` instead of a
+/// row-value comparison so the same text runs on `SQLite` and Postgres. The redundant
+/// `started_at <= ?` bound lets the planner seek into `boson_run_started_at_id` instead of
+/// scanning it from the start; that index also serves the order (scanned backward).
+fn runs_after_sql(has_job_id: bool, has_after: bool) -> String {
+    let mut clauses = Vec::new();
+    if has_job_id {
+        clauses.push("job_id = ?");
+    }
+    if has_after {
+        clauses.push("started_at <= ? AND (started_at < ? OR (started_at = ? AND run_id < ?))");
+    }
+    let filter = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+    format!("SELECT * FROM boson_run{filter} ORDER BY started_at DESC, run_id DESC LIMIT ?")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::runs_after_sql;
+
+    #[test]
+    fn runs_after_sql_variants() {
+        assert_eq!(
+            runs_after_sql(false, false),
+            "SELECT * FROM boson_run ORDER BY started_at DESC, run_id DESC LIMIT ?"
+        );
+        assert_eq!(
+            runs_after_sql(true, true),
+            "SELECT * FROM boson_run WHERE job_id = ? AND \
+             started_at <= ? AND (started_at < ? OR (started_at = ? AND run_id < ?)) \
+             ORDER BY started_at DESC, run_id DESC LIMIT ?"
+        );
     }
 }

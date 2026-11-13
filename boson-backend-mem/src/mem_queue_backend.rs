@@ -4,8 +4,8 @@ use std::sync::RwLock;
 
 use async_trait::async_trait;
 use boson_core::{
-    Job, JobEnqueueDisposition, JobStatus, QueueBackend, Result, Run, RunStatus, TaskConfig,
-    TaskRunStats,
+    Job, JobEnqueueDisposition, JobKey, JobStatus, QueueBackend, Result, Run, RunKey, RunStatus,
+    TaskConfig, TaskRunStats,
 };
 use chrono::{DateTime, Utc};
 
@@ -98,6 +98,17 @@ impl QueueBackend for MemQueueBackend {
         })
     }
 
+    async fn list_jobs_after(
+        &self,
+        status_filter: Option<JobStatus>,
+        after: Option<&JobKey>,
+        limit: usize,
+    ) -> Result<Vec<Job>> {
+        read(&self.inner, |inner| {
+            crate::jobs::list_jobs_after(inner, status_filter, after, limit)
+        })
+    }
+
     async fn cancel_job_if_active(&self, job_id: &str) -> Result<()> {
         write_fallible(&self.inner, |inner| {
             crate::jobs::cancel_job_if_active(inner, job_id)
@@ -172,6 +183,17 @@ impl QueueBackend for MemQueueBackend {
     ) -> Result<Vec<Run>> {
         read(&self.inner, |inner| {
             crate::runs::list_runs(inner, job_id_filter, offset, limit)
+        })
+    }
+
+    async fn list_runs_after(
+        &self,
+        job_id_filter: Option<&str>,
+        after: Option<&RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        read(&self.inner, |inner| {
+            crate::runs::list_runs_after(inner, job_id_filter, after, limit)
         })
     }
 

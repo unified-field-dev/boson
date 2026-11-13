@@ -90,6 +90,17 @@ impl QueueBackend for AuditingQueueBackend {
         self.inner.list_jobs(status_filter, offset, limit).await
     }
 
+    async fn list_jobs_after(
+        &self,
+        status_filter: Option<JobStatus>,
+        after: Option<&boson_core::JobKey>,
+        limit: usize,
+    ) -> Result<Vec<Job>> {
+        self.inner
+            .list_jobs_after(status_filter, after, limit)
+            .await
+    }
+
     async fn cancel_job_if_active(&self, job_id: &str) -> Result<()> {
         self.inner.cancel_job_if_active(job_id).await
     }
@@ -145,6 +156,17 @@ impl QueueBackend for AuditingQueueBackend {
         limit: usize,
     ) -> Result<Vec<Run>> {
         self.inner.list_runs(job_id_filter, offset, limit).await
+    }
+
+    async fn list_runs_after(
+        &self,
+        job_id_filter: Option<&str>,
+        after: Option<&boson_core::RunKey>,
+        limit: usize,
+    ) -> Result<Vec<Run>> {
+        self.inner
+            .list_runs_after(job_id_filter, after, limit)
+            .await
     }
 
     async fn finish_run(
