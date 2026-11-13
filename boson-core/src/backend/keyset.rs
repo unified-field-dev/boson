@@ -178,7 +178,7 @@ mod tests {
             cursor = Some(JobKey::from(*last));
             seen.extend(page.iter().map(|j| j.job_id.clone()));
         }
-        let expected: Vec<String> = (0..300)
+        let expected: Vec<String> = (0..300_usize)
             .filter(|i| i % 3 == 1)
             .map(|i| format!("job-{i:06}"))
             .collect();
@@ -218,7 +218,7 @@ mod tests {
             cursor = Some(RunKey::from(last));
             seen.extend(page.into_iter().map(|r| r.run_id));
         }
-        let expected: Vec<String> = (0..300)
+        let expected: Vec<String> = (0..300_usize)
             .rev()
             .filter(|i| i.is_multiple_of(2))
             .map(|i| format!("run-{i:06}"))
