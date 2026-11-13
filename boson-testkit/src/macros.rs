@@ -40,6 +40,8 @@ macro_rules! backend_contract_suite {
         $crate::__backend_contract_one!($setup, $label, extend_lease_refreshes_ttl);
         $crate::__backend_contract_one!($setup, $label, expired_lease_pairs);
         $crate::__backend_contract_one!($setup, $label, reclaim_expired_lease_requeues_job);
+        $crate::__backend_contract_one!($setup, $label, keyset_jobs_pages_in_order);
+        $crate::__backend_contract_one!($setup, $label, keyset_runs_pages_in_order);
     };
     ($setup:ident, $label:literal, ignore = $ignore_msg:literal) => {
         $crate::__backend_contract_one_ignored!(
@@ -95,6 +97,18 @@ macro_rules! backend_contract_suite {
             $label,
             $ignore_msg,
             reclaim_expired_lease_requeues_job
+        );
+        $crate::__backend_contract_one_ignored!(
+            $setup,
+            $label,
+            $ignore_msg,
+            keyset_jobs_pages_in_order
+        );
+        $crate::__backend_contract_one_ignored!(
+            $setup,
+            $label,
+            $ignore_msg,
+            keyset_runs_pages_in_order
         );
     };
 }

@@ -1,7 +1,7 @@
 //! Job persistence helpers for the in-memory backend.
 
 use boson_core::{
-    BosonError, IdempotencyMode, Job, JobEnqueueDisposition, JobStatus, Result, TaskConfig,
+    BosonError, IdempotencyMode, Job, JobEnqueueDisposition, JobKey, JobStatus, Result, TaskConfig,
 };
 
 use crate::enqueue_rate::EnqueueRateLimiter;
@@ -99,6 +99,20 @@ pub fn list_jobs(
         .collect();
     jobs.sort_by_key(|j| j.created_at);
     jobs.into_iter().skip(offset).take(limit).collect()
+}
+
+/// Keyset page of jobs in `created_at ASC, job_id ASC` order (see
+/// [`QueueBackend::list_jobs_after`](boson_core::QueueBackend::list_jobs_after)).
+pub fn list_jobs_after(
+    inner: &Inner,
+    status_filter: Option<JobStatus>,
+    after: Option<&JobKey>,
+    limit: usize,
+) -> Vec<Job> {
+    boson_core::page_jobs_after(inner.jobs.values(), status_filter, after, limit)
+        .into_iter()
+        .cloned()
+        .collect()
 }
 
 /// Cancel a job if still active.

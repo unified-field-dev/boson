@@ -1,6 +1,6 @@
 //! Job persistence for the SQL queue backend.
 
-use boson_core::{BosonError, Job, JobEnqueueDisposition, JobStatus, Result, TaskConfig};
+use boson_core::{BosonError, Job, JobEnqueueDisposition, JobKey, JobStatus, Result, TaskConfig};
 use sqlx::Row;
 
 use crate::enqueue_rate::EnqueueRateLimiter;
@@ -172,6 +172,39 @@ impl SqlQueueBackend {
         }
     }
 
+    pub(crate) async fn list_jobs_after_impl(
+        &self,
+        status_filter: Option<JobStatus>,
+        after: Option<&JobKey>,
+        limit: usize,
+    ) -> Result<Vec<Job>> {
+        let sql = bind_sql(
+            self.dialect,
+            &jobs_after_sql(status_filter.is_some(), after.is_some()),
+        );
+        let status = status_filter.map(job_status_to_str);
+        let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+        sql_fetch_all_map!(
+            self,
+            &sql,
+            |q| {
+                let mut q = q;
+                if let Some(status) = status {
+                    q = q.bind(status);
+                }
+                if let Some(key) = after {
+                    q = q
+                        .bind(key.created_at)
+                        .bind(key.created_at)
+                        .bind(key.created_at)
+                        .bind(&key.id);
+                }
+                q.bind(limit)
+            },
+            |r| row_to_job(r)
+        )
+    }
+
     pub(crate) async fn cancel_job_if_active_impl(&self, job_id: &str) -> Result<()> {
         let existing = self.get_job_impl(job_id).await?;
         let Some(_) = existing else {
@@ -277,5 +310,47 @@ impl SqlQueueBackend {
             )
             .unwrap_or(u64::MAX)))
         }
+    }
+}
+
+/// `SELECT` for [`SqlQueueBackend::list_jobs_after_impl`] with `?` placeholders.
+///
+/// Placeholder order: status (when filtered), then `created_at` three times and `job_id` (when a
+/// key is given), then the limit. The key predicate is spelled as an expanded `OR` instead of a
+/// row-value comparison so the same text runs on `SQLite` and Postgres. The redundant
+/// `created_at >= ?` bound lets the planner seek into `boson_job_created_at_id` instead of
+/// scanning it from the start; that index also serves the order.
+fn jobs_after_sql(has_status: bool, has_after: bool) -> String {
+    let mut clauses = Vec::new();
+    if has_status {
+        clauses.push("status = ?");
+    }
+    if has_after {
+        clauses.push("created_at >= ? AND (created_at > ? OR (created_at = ? AND job_id > ?))");
+    }
+    let filter = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+    format!("SELECT * FROM boson_job{filter} ORDER BY created_at ASC, job_id ASC LIMIT ?")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::jobs_after_sql;
+
+    #[test]
+    fn jobs_after_sql_variants() {
+        assert_eq!(
+            jobs_after_sql(false, false),
+            "SELECT * FROM boson_job ORDER BY created_at ASC, job_id ASC LIMIT ?"
+        );
+        assert_eq!(
+            jobs_after_sql(true, true),
+            "SELECT * FROM boson_job WHERE status = ? AND \
+             created_at >= ? AND (created_at > ? OR (created_at = ? AND job_id > ?)) \
+             ORDER BY created_at ASC, job_id ASC LIMIT ?"
+        );
     }
 }

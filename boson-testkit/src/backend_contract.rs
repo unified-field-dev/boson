@@ -3,8 +3,10 @@
 use std::sync::Arc;
 
 use boson_core::{
-    JobEnqueueDisposition, JobStatus, QueueBackend, RateLimitPolicy, RunStatus, TaskConfig,
+    Job, JobEnqueueDisposition, JobKey, JobStatus, QueueBackend, RateLimitPolicy, RunKey,
+    RunStatus, TaskConfig,
 };
+use chrono::{DateTime, TimeZone, Utc};
 use serde_json::json;
 
 /// Fixture environment for backend contract tests.
@@ -320,4 +322,223 @@ pub async fn reclaim_expired_lease_requeues_job(b: Arc<dyn QueueBackend>, _env: 
     let restored = b.get_job(&job_id).await.unwrap().expect("job");
     assert_eq!(restored.status, JobStatus::Queued);
     assert!(b.try_claim_job(&job_id).await.unwrap().is_some());
+}
+
+/// Whole-millisecond timestamp an hour in the past, so every engine stores it exactly
+/// (Scylla keeps milliseconds, Postgres microseconds) and fresh enqueues sort after it.
+fn keyset_base() -> DateTime<Utc> {
+    let ms = Utc::now().timestamp_millis() - 3_600_000;
+    Utc.timestamp_millis_opt(ms)
+        .single()
+        .expect("valid timestamp")
+}
+
+/// Offset `i / 3` milliseconds from `base`, so every timestamp is shared by three rows and the
+/// id tie-break decides their order.
+fn keyset_time(base: DateTime<Utc>, i: usize) -> DateTime<Utc> {
+    base + chrono::Duration::milliseconds(i64::try_from(i / 3).expect("small index"))
+}
+
+/// Page `list_jobs_after` to the end and return every job in scan order.
+///
+/// `mid_scan` runs once after the third page.
+async fn scan_jobs_after(
+    b: &dyn QueueBackend,
+    status: Option<JobStatus>,
+    page_size: usize,
+    mut mid_scan: impl FnMut() -> Option<Vec<Job>>,
+) -> Vec<Job> {
+    let mut out: Vec<Job> = Vec::new();
+    let mut cursor: Option<JobKey> = None;
+    let mut pages = 0_usize;
+    loop {
+        let page = b
+            .list_jobs_after(status, cursor.as_ref(), page_size)
+            .await
+            .expect("list_jobs_after");
+        assert!(page.len() <= page_size, "page exceeds limit");
+        let Some(last) = page.last() else { break };
+        cursor = Some(JobKey::from(last));
+        out.extend(page);
+        pages += 1;
+        if pages == 3 {
+            if let Some(jobs) = mid_scan() {
+                for job in jobs {
+                    enqueue(b, job, &task_config("keyset")).await;
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Checks one jobs scan: keys strictly increase, and among this test's jobs (`prefix`) the seeded
+/// ones come first in `seeded` order, followed by exactly the `tail` ids in any order.
+fn assert_jobs_scan(scanned: &[Job], prefix: &str, seeded: &[&str], tail: &[String], what: &str) {
+    for pair in scanned.windows(2) {
+        assert!(
+            JobKey::from(&pair[0]).precedes(&pair[1]),
+            "{what}: out of order: {} then {}",
+            pair[0].job_id,
+            pair[1].job_id
+        );
+    }
+    let ids: Vec<&str> = scanned
+        .iter()
+        .map(|j| j.job_id.as_str())
+        .filter(|id| id.starts_with(prefix))
+        .collect();
+    assert_eq!(
+        ids.len(),
+        seeded.len() + tail.len(),
+        "{what}: each job once"
+    );
+    assert_eq!(
+        ids[..seeded.len()],
+        seeded[..],
+        "{what}: seeded jobs in key order"
+    );
+    let mut got_tail: Vec<&str> = ids[seeded.len()..].to_vec();
+    got_tail.sort_unstable();
+    assert_eq!(got_tail, tail, "{what}: mid-scan enqueues at the end");
+}
+
+/// Asserts `list_jobs_after` pages 2,500 jobs in `created_at ASC, job_id ASC` order, once each,
+/// applies the status filter, and puts jobs enqueued mid-scan at the end exactly once.
+///
+/// # Panics
+///
+/// Panics if backend operations fail or contract assertions are violated.
+pub async fn keyset_jobs_pages_in_order(b: Arc<dyn QueueBackend>, _env: &BackendEnv) {
+    const TOTAL: usize = 2_500;
+    const PAGE: usize = 100;
+    const STATUSES: [JobStatus; 5] = [
+        JobStatus::Queued,
+        JobStatus::Running,
+        JobStatus::Success,
+        JobStatus::Failed,
+        JobStatus::Canceled,
+    ];
+    let prefix = format!("ks-{}", uuid::Uuid::new_v4().simple());
+    let base = keyset_base();
+    let seeded: Vec<String> = (0..TOTAL).map(|i| format!("{prefix}-{i:05}")).collect();
+
+    // Insert out of order (7 is coprime with 2,500) so insertion order cannot pass for sort order.
+    for n in 0..TOTAL {
+        let i = (n * 7) % TOTAL;
+        let mut job = sample_job("keyset", "global", 1, None);
+        job.job_id.clone_from(&seeded[i]);
+        job.created_at = keyset_time(base, i);
+        job.status = STATUSES[i % STATUSES.len()];
+        b.upsert_job(&job).await.expect("upsert_job");
+    }
+
+    // Enqueued (status queued, created now) after the third page of the unfiltered scan.
+    let new_ids: Vec<String> = (0..10).map(|k| format!("{prefix}-new-{k:02}")).collect();
+    let mut pending = Some(
+        new_ids
+            .iter()
+            .map(|id| {
+                let mut job = sample_job("keyset", "global", 1, None);
+                job.job_id.clone_from(id);
+                job
+            })
+            .collect::<Vec<_>>(),
+    );
+    let scanned = scan_jobs_after(&*b, None, PAGE, || pending.take()).await;
+    let all: Vec<&str> = seeded.iter().map(String::as_str).collect();
+    assert_jobs_scan(&scanned, &prefix, &all, &new_ids, "unfiltered");
+
+    for status in [JobStatus::Queued, JobStatus::Failed] {
+        let filtered = scan_jobs_after(&*b, Some(status), PAGE, || None).await;
+        assert!(filtered.iter().all(|j| j.status == status), "status filter");
+        let expected: Vec<&str> = all
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| STATUSES[i % STATUSES.len()] == status)
+            .map(|(_, id)| *id)
+            .collect();
+        let tail: &[String] = if status == JobStatus::Queued {
+            &new_ids
+        } else {
+            &[]
+        };
+        assert_jobs_scan(&filtered, &prefix, &expected, tail, &status.to_string());
+    }
+}
+
+/// Asserts `list_runs_after` pages one job's 250 runs (of 500) in `started_at DESC, run_id DESC`
+/// order, once each, and skips a run that starts mid-scan.
+///
+/// # Panics
+///
+/// Panics if backend operations fail or contract assertions are violated.
+pub async fn keyset_runs_pages_in_order(b: Arc<dyn QueueBackend>, _env: &BackendEnv) {
+    const TOTAL: usize = 500;
+    const PAGE: usize = 40;
+    let prefix = format!("ks-{}", uuid::Uuid::new_v4().simple());
+    let job_even = format!("{prefix}-job-even");
+    let job_odd = format!("{prefix}-job-odd");
+    let base = keyset_base();
+    let run_id = |i: usize| format!("{prefix}-{i:05}");
+
+    for n in 0..TOTAL {
+        let i = (n * 7) % TOTAL;
+        let job = if i % 2 == 0 { &job_even } else { &job_odd };
+        let mut run = boson_core::Run::new(job, "keyset", 1);
+        run.run_id = run_id(i);
+        run.started_at = keyset_time(base, i);
+        b.upsert_run(&run).await.expect("upsert_run");
+    }
+
+    let mut scanned: Vec<boson_core::Run> = Vec::new();
+    let mut cursor: Option<RunKey> = None;
+    let mut pages = 0_usize;
+    let newer_id = format!("{prefix}-newer");
+    loop {
+        let page = b
+            .list_runs_after(Some(&job_even), cursor.as_ref(), PAGE)
+            .await
+            .expect("list_runs_after");
+        assert!(page.len() <= PAGE, "page exceeds limit");
+        let Some(last) = page.last() else { break };
+        cursor = Some(RunKey::from(last));
+        scanned.extend(page);
+        pages += 1;
+        if pages == 2 {
+            let mut run = boson_core::Run::new(&job_even, "keyset", 2);
+            run.run_id.clone_from(&newer_id);
+            b.upsert_run(&run).await.expect("upsert_run mid-scan");
+        }
+    }
+
+    for pair in scanned.windows(2) {
+        assert!(
+            RunKey::from(&pair[0]).precedes(&pair[1]),
+            "scan out of order: {} then {}",
+            pair[0].run_id,
+            pair[1].run_id
+        );
+    }
+    assert!(scanned.iter().all(|r| r.job_id == job_even), "job filter");
+    let ids: Vec<&str> = scanned.iter().map(|r| r.run_id.as_str()).collect();
+    let expected: Vec<String> = (0..TOTAL)
+        .rev()
+        .filter(|i| i % 2 == 0)
+        .map(run_id)
+        .collect();
+    assert_eq!(
+        ids, expected,
+        "each run once, newest first; newer run not returned"
+    );
+
+    let fresh = b
+        .list_runs_after(Some(&job_even), None, 1)
+        .await
+        .expect("list_runs_after fresh scan");
+    assert_eq!(
+        fresh.first().map(|r| r.run_id.as_str()),
+        Some(newer_id.as_str()),
+        "a new scan starts at the newest run"
+    );
 }

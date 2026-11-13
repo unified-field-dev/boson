@@ -20,6 +20,7 @@ boson-core = { workspace = true }
 boson-macros = { workspace = true }
 boson-runtime = { workspace = true }
 boson-telemetry = { workspace = true }
+chrono = { workspace = true }
 http-body-util = { workspace = true }
 paste = { workspace = true }
 quark = { workspace = true }

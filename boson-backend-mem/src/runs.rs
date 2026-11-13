@@ -1,6 +1,6 @@
 //! Run persistence helpers for the in-memory backend.
 
-use boson_core::{Run, RunStatus, TaskRunStats};
+use boson_core::{Run, RunKey, RunStatus, TaskRunStats};
 use chrono::{DateTime, Utc};
 
 use crate::store::Inner;
@@ -30,6 +30,20 @@ pub fn list_runs(
         .collect();
     runs.sort_by_key(|r| std::cmp::Reverse(r.started_at));
     runs.into_iter().skip(offset).take(limit).collect()
+}
+
+/// Keyset page of runs in `started_at DESC, run_id DESC` order (see
+/// [`QueueBackend::list_runs_after`](boson_core::QueueBackend::list_runs_after)).
+pub fn list_runs_after(
+    inner: &Inner,
+    job_id_filter: Option<&str>,
+    after: Option<&RunKey>,
+    limit: usize,
+) -> Vec<Run> {
+    boson_core::page_runs_after(inner.runs.values(), job_id_filter, after, limit)
+        .into_iter()
+        .cloned()
+        .collect()
 }
 
 /// Mark a run terminal with outcome fields.

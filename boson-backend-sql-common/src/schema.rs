@@ -87,6 +87,11 @@ async fn ensure_schema_tables(backend: &SqlQueueBackend) -> Result<()> {
         .await?;
     backend
         .run_ddl(
+            "CREATE INDEX IF NOT EXISTS boson_job_created_at_id ON boson_job (created_at, job_id)",
+        )
+        .await?;
+    backend
+        .run_ddl(
             "CREATE UNIQUE INDEX IF NOT EXISTS boson_job_idempotency_active ON boson_job (idempotency_key) WHERE idempotency_key IS NOT NULL AND status IN ('queued', 'running')",
         )
         .await?;
@@ -99,6 +104,11 @@ async fn ensure_schema_tables(backend: &SqlQueueBackend) -> Result<()> {
         .await?;
     backend
         .run_ddl("CREATE INDEX IF NOT EXISTS boson_run_started_at ON boson_run (started_at)")
+        .await?;
+    backend
+        .run_ddl(
+            "CREATE INDEX IF NOT EXISTS boson_run_started_at_id ON boson_run (started_at, run_id)",
+        )
         .await?;
 
     backend
