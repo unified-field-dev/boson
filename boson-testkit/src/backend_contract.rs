@@ -484,7 +484,11 @@ pub async fn keyset_runs_pages_in_order(b: Arc<dyn QueueBackend>, _env: &Backend
 
     for n in 0..TOTAL {
         let i = (n * 7) % TOTAL;
-        let job = if i % 2 == 0 { &job_even } else { &job_odd };
+        let job = if i.is_multiple_of(2) {
+            &job_even
+        } else {
+            &job_odd
+        };
         let mut run = boson_core::Run::new(job, "keyset", 1);
         run.run_id = run_id(i);
         run.started_at = keyset_time(base, i);
@@ -524,7 +528,7 @@ pub async fn keyset_runs_pages_in_order(b: Arc<dyn QueueBackend>, _env: &Backend
     let ids: Vec<&str> = scanned.iter().map(|r| r.run_id.as_str()).collect();
     let expected: Vec<String> = (0..TOTAL)
         .rev()
-        .filter(|i| i % 2 == 0)
+        .filter(|i| i.is_multiple_of(2))
         .map(run_id)
         .collect();
     assert_eq!(

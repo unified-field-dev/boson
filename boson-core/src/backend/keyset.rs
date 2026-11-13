@@ -199,7 +199,16 @@ mod tests {
     #[test]
     fn runs_page_descending_with_filter_and_ties() {
         let all: Vec<Run> = (0..300)
-            .map(|i| run(i, if i % 2 == 0 { "job-a" } else { "job-b" }))
+            .map(|i| {
+                run(
+                    i,
+                    if i.is_multiple_of(2) {
+                        "job-a"
+                    } else {
+                        "job-b"
+                    },
+                )
+            })
             .collect();
         let mut seen = Vec::new();
         let mut cursor: Option<RunKey> = None;
@@ -211,7 +220,7 @@ mod tests {
         }
         let expected: Vec<String> = (0..300)
             .rev()
-            .filter(|i| i % 2 == 0)
+            .filter(|i| i.is_multiple_of(2))
             .map(|i| format!("run-{i:06}"))
             .collect();
         assert_eq!(seen, expected);
